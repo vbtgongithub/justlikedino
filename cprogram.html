@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C-PROGRAM</title>
+</head>
+<body>
+    <pre>
+        <code>
+#include &lt;windows.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;time.h&gt;
+
+#define WIN_WIDTH 800
+#define WIN_HEIGHT 400
+#define DINO_WIDTH 40
+#define DINO_HEIGHT 40
+#define OBSTACLE_WIDTH 30
+#define OBSTACLE_HEIGHT 60
+#define GROUND_Y (WIN_HEIGHT - 60)
+
+int dinoY = GROUND_Y - DINO_HEIGHT;
+int velocity = 0;
+int isJumping = 0;
+int gameOver = 0;
+
+int obstacleX = WIN_WIDTH;
+int score = 0;
+int highScore = 0;
+
+HWND hwnd;
+HBRUSH hBrushDino, hBrushObstacleTrunk, hBrushObstacleLeaves;
+
+void ResetGame() {
+    dinoY = GROUND_Y - DINO_HEIGHT;
+    velocity = 0;
+    isJumping = 0;
+    obstacleX = WIN_WIDTH + rand() % 200;
+    score = 0;
+    gameOver = 0;
+}
+
+void LoadHighScore() {
+    FILE* f = fopen("highscore.txt", "r");
+    if (f) {
+        fscanf(f, "%d", &highScore);
+        fclose(f);
+    }
+}
+
+void SaveHighScore() {
+    FILE* f = fopen("highscore.txt", "w");
+    if (f) {
+        fprintf(f, "%d", highScore);
+        fclose(f);
+    }
+}
+
+void DrawRCBPlayer(HDC hdc, int x, int y) {
+    // Declare hOldBrush once
+    HBRUSH hOldBrush;
+
+    // Jersey body - Red
+    HBRUSH hBrushRed = CreateSolidBrush(RGB(204, 0, 0)); // RCB red
+    hOldBrush = (HBRUSH)SelectObject(hdc, hBrushRed);
+    Rectangle(hdc, x + 15, y + 20, x + 44, y + 45);
+    SelectObject(hdc, hOldBrush);
+    DeleteObject(hBrushRed);
+
+    // Head - Skin color
+    HBRUSH hBrushSkin = CreateSolidBrush(RGB(255, 224, 189)); // skin tone
+    hOldBrush = (HBRUSH)SelectObject(hdc, hBrushSkin);
+    Ellipse(hdc, x + 15, y, x + 40, y + 20); // Head
+    SelectObject(hdc, hOldBrush);
+    DeleteObject(hBrushSkin);
+
+    // Jersey sleeves - Black
+    HBRUSH hBrushBlack = CreateSolidBrush(RGB(0, 0, 0));
+    hOldBrush = (HBRUSH)SelectObject(hdc, hBrushBlack);
+    // Left sleeve
+    Rectangle(hdc, x + 7, y + 25, x + 15, y + 35);
+    // Right sleeve
+    Rectangle(hdc, x + 44, y + 25, x + 52, y + 35);
+    SelectObject(hdc, hOldBrush);
+    DeleteObject(hBrushBlack);
+
+    // Shorts - Black
+    HBRUSH hBrushShorts = CreateSolidBrush(RGB(0, 0, 0));
+    hOldBrush = (HBRUSH)SelectObject(hdc, hBrushShorts);
+    // Left leg
+    Rectangle(hdc, x + 17, y + 45, x + 23, y + 60);
+    // Right leg
+    Rectangle(hdc, x + 38, y + 45, x + 33, y + 60);
+    SelectObject(hdc, hOldBrush);
+    DeleteObject(hBrushShorts);
+
+    // Jersey text "RCB" in gold/yellow
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, RGB(255, 215, 0)); // gold color
+    TextOut(hdc, x + 16, y + 25, "RCB", 3);
+}
+void DrawLollipop(HDC hdc, int x, int y) {
+    // Lollipop dimensions
+    int candyDiameter = OBSTACLE_WIDTH; // Make sure width == height for a circle
+    int stickHeight = 28;
+    int stickWidth = 6;
+
+    // Draw the stick (white)
+    HBRUSH hBrushStick = CreateSolidBrush(RGB(230, 230, 230));
+    HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, hBrushStick);
+    RECT stick = {
+        x + candyDiameter/2 - stickWidth/2-2,
+        y + candyDiameter,
+        x + candyDiameter/2 + stickWidth/2+2,
+        y + candyDiameter + stickHeight
+    };
+    FillRect(hdc, &stick, hBrushStick);
+    SelectObject(hdc, hOldBrush);
+    DeleteObject(hBrushStick);
+
+    // Draw the candy (circle) - bright, glossy red
+    HBRUSH hBrushCandy = CreateSolidBrush(RGB(255, 36, 85)); // Vibrant candy red
+    hOldBrush = (HBRUSH)SelectObject(hdc, hBrushCandy);
+    Ellipse(hdc, x, y, x + candyDiameter, y + candyDiameter); // Perfect circle
+    SelectObject(hdc, hOldBrush);
+    DeleteObject(hBrushCandy);
+
+    // Optional: Add a white highlight for gloss
+    HBRUSH hBrushHighlight = CreateSolidBrush(RGB(255, 255, 255));
+    hOldBrush = (HBRUSH)SelectObject(hdc, hBrushHighlight);
+    Ellipse(hdc, x + candyDiameter/4, y + candyDiameter/6, x + candyDiameter/2, y + candyDiameter/2);
+    SelectObject(hdc, hOldBrush);
+    DeleteObject(hBrushHighlight);
+}
+
+
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    static RECT clientRect;
+
+    switch (msg) {
+        case WM_CREATE:
+            GetClientRect(hwnd, &clientRect);
+            SetTimer(hwnd, 1, 30, NULL);  // 30ms = ~33 FPS
+            hBrushDino = CreateSolidBrush(RGB(0, 200, 0));
+            hBrushObstacleTrunk = CreateSolidBrush(RGB(139, 69, 19)); // brown
+            hBrushObstacleLeaves = CreateSolidBrush(RGB(34, 139, 34)); // green
+            LoadHighScore();
+            srand((unsigned int)time(NULL));
+            break;
+
+        case WM_KEYDOWN:
+            if (wParam == VK_SPACE) {
+                if (gameOver) {
+                    ResetGame();
+                } else if (dinoY >= GROUND_Y - DINO_HEIGHT) {
+                    isJumping = 1;
+                    velocity = -15;
+                }
+            }
+            break;
+
+        case WM_TIMER:
+            if (gameOver) break;
+
+            // Dino physics
+            if (isJumping) {
+                dinoY += velocity;
+                velocity += 1;
+                if (dinoY >= GROUND_Y - DINO_HEIGHT) {
+                    dinoY = GROUND_Y - DINO_HEIGHT;
+                    velocity = 0;
+                    isJumping = 0;
+                }
+            }
+
+            // Obstacle
+            obstacleX -= 10;
+            if (obstacleX + OBSTACLE_WIDTH < 0) {
+                obstacleX = WIN_WIDTH + rand() % 200;
+                score++;
+                if (score > highScore) {
+                    highScore = score;
+                    SaveHighScore();
+                }
+            }
+
+            // Collision
+            // Dino's front: x=60+32, y=dinoY+15..dinoY+35
+            // Tree's trunk: x=obstacleX+10..obstacleX+20, y=GROUND_Y-25..GROUND_Y
+            int dinoFrontX = 60 + 32;
+            int dinoBottomY = dinoY + 35;
+            int treeTrunkLeft = obstacleX + OBSTACLE_WIDTH/2 - 5;
+            int treeTrunkRight = obstacleX + OBSTACLE_WIDTH/2 + 5;
+            int treeTrunkTop = GROUND_Y - 25;
+            int treeTrunkBottom = GROUND_Y;
+
+            if (
+                dinoFrontX > treeTrunkLeft && dinoFrontX < treeTrunkRight &&
+                dinoBottomY > treeTrunkTop
+            ) {
+                gameOver = 1;
+                SaveHighScore();
+            }
+
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+
+            FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
+
+            // Ground
+            HPEN hPen = CreatePen(PS_SOLID, 3, RGB(100, 100, 100));
+            HPEN oldPen = SelectObject(hdc, hPen);
+            MoveToEx(hdc, 0, GROUND_Y, NULL);
+            LineTo(hdc, WIN_WIDTH, GROUND_Y);
+
+            SelectObject(hdc, oldPen);
+            DeleteObject(hPen);
+
+            // Dino
+            DrawRCBPlayer(hdc, 60, dinoY);
+
+
+            // Tree (obstacle)
+            DrawLollipop(hdc, obstacleX, GROUND_Y - OBSTACLE_HEIGHT);
+
+            // Score
+            char buf[100];
+            sprintf(buf, "Score: %d | High Score: %d", score, highScore);
+            TextOut(hdc, 10, 10, buf, lstrlen(buf));
+
+            // Game Over
+            if (gameOver) {
+                SetBkMode(hdc, TRANSPARENT);
+                SetTextColor(hdc, RGB(255, 0, 0));
+                TextOut(hdc, WIN_WIDTH / 2 - 70, WIN_HEIGHT / 2 - 20, "GAME OVER", 9);
+                TextOut(hdc, WIN_WIDTH / 2 - 120, WIN_HEIGHT / 2 + 10, "Press SPACE to Restart", 21);
+            }
+
+            EndPaint(hwnd, &ps);
+        } break;
+
+        case WM_DESTROY:
+            KillTimer(hwnd, 1);
+            PostQuitMessage(0);
+            break;
+    }
+
+    return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmdLine, int nCmdShow) {
+    WNDCLASS wc = {0};
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = hInstance;
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wc.lpszClassName = "DinoWindow";
+
+    RegisterClass(&wc);
+
+    hwnd = CreateWindowEx(0, "DinoWindow", "Chrome Dino - Pixel Edition",
+                          WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME,
+                          CW_USEDEFAULT, CW_USEDEFAULT, WIN_WIDTH, WIN_HEIGHT,
+                          NULL, NULL, hInstance, NULL);
+
+    ShowWindow(hwnd, nCmdShow);
+    UpdateWindow(hwnd);
+
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    return 0;
+}
+
+        </code>
+    </pre>
+</body>
+</html>
