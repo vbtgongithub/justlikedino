@@ -170,6 +170,7 @@
         // Controls
         document.addEventListener('keydown', e => {
             if (e.code === 'Space') {
+                e.preventDefault(); // Prevent page scrolling
                 if (!gameStarted) {
                     gameStarted = true;
                     update();
@@ -190,6 +191,7 @@
         });
 
         canvas.addEventListener('touchstart', e => {
+            e.preventDefault(); // Prevent default touch behavior
             if (!gameStarted) {
                 gameStarted = true;
                 update();

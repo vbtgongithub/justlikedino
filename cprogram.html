@@ -4,10 +4,248 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>C-PROGRAM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .code-container {
+            padding: 30px;
+            background: #1e1e1e;
+            position: relative;
+        }
+
+        .code-header {
+            background: #2d2d2d;
+            padding: 15px 30px;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-info {
+            color: #e0e0e0;
+            font-size: 0.9rem;
+        }
+
+        .language-badge {
+            background: #007acc;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        pre {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 30px;
+            overflow-x: auto;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #d4d4d4;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: transparent;
+            color: inherit;
+        }
+
+        /* Syntax highlighting */
+        .keyword {
+            color: #569cd6;
+            font-weight: bold;
+        }
+
+        .string {
+            color: #ce9178;
+        }
+
+        .comment {
+            color: #6a9955;
+            font-style: italic;
+        }
+
+        .number {
+            color: #b5cea8;
+        }
+
+        .function {
+            color: #dcdcaa;
+        }
+
+        .preprocessor {
+            color: #c586c0;
+        }
+
+        .type {
+            color: #4ec9b0;
+        }
+
+        /* Scrollbar styling */
+        pre::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        pre::-webkit-scrollbar-track {
+            background: #2d2d2d;
+            border-radius: 4px;
+        }
+
+        pre::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        pre::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .code-container {
+                padding: 15px;
+            }
+
+            pre {
+                padding: 20px;
+                font-size: 12px;
+            }
+
+            .back-button {
+                position: relative;
+                top: auto;
+                left: auto;
+                display: inline-block;
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Animation for page load */
+        .container {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Code line numbers (optional) */
+        .line-numbers {
+            counter-reset: line;
+        }
+
+        .line-numbers > code {
+            display: block;
+        }
+
+        .line-numbers > code:before {
+            counter-increment: line;
+            content: counter(line);
+            display: inline-block;
+            width: 3em;
+            padding-right: 1em;
+            text-align: right;
+            color: #666;
+            border-right: 1px solid #404040;
+            margin-right: 1em;
+        }
+    </style>
 </head>
 <body>
-    <pre>
-        <code>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-button">← Back to Game</a>
+            <h1>C Program Implementation</h1>
+            <p>Windows API-based RCB Runner Game in C</p>
+        </div>
+        
+        <div class="code-container">
+            <div class="code-header">
+                <div class="file-info">
+                    <strong>File:</strong> rcb_runner.c
+                </div>
+                <div class="language-badge">C Language</div>
+            </div>
+            
+            <pre class="line-numbers"><code>
 #include &lt;windows.h&gt;
 #include &lt;stdio.h&gt;
 #include &lt;time.h&gt;
@@ -281,6 +519,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmdLine, int nC
 }
 
         </code>
-    </pre>
+            </pre>
+        </div>
+    </div>
 </body>
 </html>
